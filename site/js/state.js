@@ -1,0 +1,22 @@
+// App state (kept in one place)
+window.orderState = {};
+window.CATALOG.forEach(i => {
+  window.orderState[i.id] = { qty: 0, variant: i.hasVariant ? "slice" : null };
+});
+
+// helpers
+window.getDeliveryFeeLabel = function () {
+  return "TBD (based on distance)";
+};
+
+window.calcItemTotal = function (item, qty, variantKey) {
+  if (!item.hasVariant) return qty * item.price;
+  const v = item.variants.find(x => x.key === variantKey) || item.variants[0];
+  return qty * item.price * (v?.multiplier ?? 1);
+};
+
+window.scrollToMenuSelections = function () {
+  const el = document.getElementById("menu-select");
+  if (!el) return;
+  el.scrollIntoView({ behavior: "smooth", block: "start" });
+};

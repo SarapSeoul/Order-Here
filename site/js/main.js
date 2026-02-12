@@ -1,0 +1,48 @@
+window.addEventListener("DOMContentLoaded", () => {
+  lucide.createIcons();
+
+  // IG footer link
+  const igLink = document.getElementById("igLink");
+  igLink.href = `https://instagram.com/${window.APP_CONFIG.INSTAGRAM_HANDLE}`;
+
+  // tabs: switch + scroll
+  document.getElementById("tab-food").addEventListener("click", () => {
+    window.setTab("food");
+    window.scrollToMenuSelections();
+  });
+  document.getElementById("tab-dessert").addEventListener("click", () => {
+    window.setTab("dessert");
+    window.scrollToMenuSelections();
+  });
+
+  // render + init
+  window.renderMenus();
+  window.updateSummary();
+  window.setTab("food");
+
+  // form wiring
+  window.attachFormSubmit();
+
+  // reset button
+  document.getElementById("resetBtn").addEventListener("click", () => {
+    Object.keys(window.orderState).forEach(id => {
+      window.orderState[id].qty = 0;
+      const el = document.getElementById(`qty-${id}`);
+      if (el) el.textContent = "0";
+    });
+
+    document.getElementById("orderForm").reset();
+
+    const addressWrap = document.getElementById("addressWrap");
+    const address = document.getElementById("address");
+    const deliveryFeeNotice = document.getElementById("deliveryFeeNotice");
+
+    addressWrap.classList.add("hidden");
+    if (deliveryFeeNotice) deliveryFeeNotice.classList.add("hidden");
+    address.required = false;
+
+    document.getElementById("successMessage").classList.add("hidden");
+    window.updateSummary();
+    window.location.hash = "#order-section";
+  });
+});
