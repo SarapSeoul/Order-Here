@@ -144,7 +144,7 @@
           <textarea id="allergies" rows="3" class="w-full px-4 py-3 rounded-lg border-2 border-gray-300 focus:border-[#B83C1D] focus:outline-none bg-white/80 text-lg resize-none" placeholder="Any allergies or notes..."></textarea>
         </div>
 
-        <button type="submit" class="order-btn w-full py-4 rounded-xl text-white font-bold text-xl handwritten tracking-wide shadow-lg flex items-center justify-center gap-2">
+        <button id="submitBtn" type="submit" class="order-btn w-full py-4 rounded-xl text-white font-bold text-xl handwritten tracking-wide shadow-lg flex items-center justify-center gap-2">
           <i data-lucide="send" class="w-6 h-6"></i>
           Send Order
         </button>
@@ -153,6 +153,13 @@
           Submitting sends your order to our order sheet and prepares an Instagram DM message.
         </p>
       </form>
+
+      <!-- Loading -->
+      <div id="loadingOverlay" class="hidden absolute inset-0 bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center p-8 text-center z-30" role="status" aria-live="polite">
+        <div class="loading-spinner mb-5" aria-hidden="true"></div>
+        <h3 class="handwritten text-4xl deep-blue font-bold mb-2">Sending your order…</h3>
+        <p class="text-gray-700 text-lg">Please wait — this helps prevent duplicate submissions.</p>
+      </div>
 
       <!-- Success -->
       <div id="successMessage" class="hidden absolute inset-0 bg-white/95 backdrop-blur-sm flex flex-col items-center justify-center p-8 text-center z-20">

@@ -42,6 +42,15 @@ window.addEventListener("DOMContentLoaded", () => {
     address.required = false;
 
     document.getElementById("successMessage").classList.add("hidden");
+
+    // ensure any loading UI is cleared
+    try { window.__orderUI?.hideLoading?.(); } catch (_) {}
+    const loadingOverlay = document.getElementById("loadingOverlay");
+    if (loadingOverlay) loadingOverlay.classList.add("hidden");
+    const submitBtn = document.getElementById("submitBtn");
+    if (submitBtn) submitBtn.disabled = false;
+    document.getElementById("orderForm")?.setAttribute("aria-busy", "false");
+
     window.updateSummary();
     window.location.hash = "#order-section";
   });

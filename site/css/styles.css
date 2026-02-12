@@ -45,3 +45,25 @@ body{
 ::-webkit-scrollbar{width:8px;}
 ::-webkit-scrollbar-track{background:#f5f3f0;}
 ::-webkit-scrollbar-thumb{background:#B83C1D;border-radius:4px;}
+
+/* Loading overlay spinner */
+.loading-spinner{
+  width:64px;
+  height:64px;
+  border-radius:50%;
+  border:6px solid rgba(184,60,29,.22);
+  border-top-color:#B83C1D;
+  animation:spin 1s linear infinite;
+}
+
+@keyframes spin{
+  to{ transform:rotate(360deg); }
+}
+
+/* Prevent double submit feel */
+button[disabled]{
+  opacity:.6;
+  cursor:not-allowed;
+  transform:none !important;
+  box-shadow:none !important;
+}
