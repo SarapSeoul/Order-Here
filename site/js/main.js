@@ -24,6 +24,9 @@ window.addEventListener("DOMContentLoaded", () => {
   window.setOutOfStock("flan", true);
   window.setOutOfStock("sago", true);
 
+  //TOGGLE UNAVAILABLE DAYS
+  window.setNoSameDayReadyToast(true);
+
   window.updateSummary();
   window.setTab("food");
 
