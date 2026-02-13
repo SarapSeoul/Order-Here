@@ -17,7 +17,13 @@ window.addEventListener("DOMContentLoaded", () => {
 
   // render + init
   window.renderMenus();
+
+  //MAKE THINGS OUT OF STOCK
   window.setOutOfStock("lumpia", true);
+  window.setOutOfStock("porkbbq", true);
+  window.setOutOfStock("flan", true);
+  window.setOutOfStock("sago", true);
+
   window.updateSummary();
   window.setTab("food");
 
