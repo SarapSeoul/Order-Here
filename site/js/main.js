@@ -17,6 +17,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
   // render + init
   window.renderMenus();
+  window.setOutOfStock("lumpia", true);
   window.updateSummary();
   window.setTab("food");
 

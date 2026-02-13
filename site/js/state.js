@@ -20,3 +20,28 @@ window.scrollToMenuSelections = function () {
   if (!el) return;
   el.scrollIntoView({ behavior: "smooth", block: "start" });
 };
+
+// --- Out-of-stock toggles ---
+window.setOutOfStock = function (id, isOutOfStock = true) {
+  const item = window.CATALOG.find(x => x.id === id);
+  if (!item) return;
+
+  item.outOfStock = !!isOutOfStock;
+
+  // If turning OFF availability, zero out any selected qty immediately
+  if (item.outOfStock && window.orderState?.[id]) {
+    window.orderState[id].qty = 0;
+    const qtyEl = document.getElementById(`qty-${id}`);
+    if (qtyEl) qtyEl.textContent = "0";
+  }
+
+  // Re-render UI if available
+  if (typeof window.renderMenus === "function") window.renderMenus();
+  if (typeof window.updateSummary === "function") window.updateSummary();
+};
+
+window.toggleOutOfStock = function (id) {
+  const item = window.CATALOG.find(x => x.id === id);
+  if (!item) return;
+  window.setOutOfStock(id, !item.outOfStock);
+};
