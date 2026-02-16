@@ -5,10 +5,13 @@ window.updateSummary = function () {
 
   let lines = "";
   let subtotal = 0;
+  let hasItems = false;
 
   window.CATALOG.forEach(item => {
     const st = window.orderState[item.id];
     if (st.qty > 0) {
+      hasItems = true;
+
       const itemTotal = window.calcItemTotal(item, st.qty, st.variant);
       subtotal += itemTotal;
 
@@ -30,6 +33,9 @@ window.updateSummary = function () {
   if (!lines) {
     summaryDiv.innerHTML = `<p class="text-gray-500 italic">No items selected yet. Add items above.</p>`;
     totalPriceEl.textContent = `$0.00`;
+
+    // NEW: hide floating checkout
+    try { window.updateFloatingCheckoutButton?.(); } catch (_) {}
     return;
   }
 
@@ -49,4 +55,7 @@ window.updateSummary = function () {
 
   summaryDiv.innerHTML = lines;
   totalPriceEl.textContent = `$${subtotal.toFixed(2)}`;
+
+  // NEW: show/update floating checkout
+  try { window.updateFloatingCheckoutButton?.(); } catch (_) {}
 };

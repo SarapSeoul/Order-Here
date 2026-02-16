@@ -1,29 +1,45 @@
+// Builds one menu card
 window.cardHTML = function (item) {
-  const priceLabel = item.unit ? `$${item.price}/${item.unit}` : `$${item.price}`;
+  const priceLabel = `$${item.price}`;
   const isOOS = item.outOfStock === true;
-
-  const variantHTML = item.hasVariant ? `
-    <div class="mt-3 flex flex-wrap items-center gap-3">
-      <label class="handwritten text-lg text-gray-700 font-bold">Type:</label>
-      <select
-        data-variant="${item.id}"
-        ${isOOS ? "disabled" : ""}
-        class="px-3 py-2 rounded-lg border-2 border-gray-300 focus:border-[#B83C1D] focus:outline-none bg-white handwritten text-lg ${isOOS ? "opacity-60 cursor-not-allowed" : ""}"
-      >
-        ${item.variants.map(v => `<option value="${v.key}">${v.label}</option>`).join("")}
-      </select>
-    </div>
-  ` : "";
-
-  const noteHTML = item.note ? `<p class="text-sm text-gray-600 italic handwritten mt-2">${item.note}</p>` : "";
 
   const oosLabelHTML = isOOS
     ? `<span class="handwritten text-2xl font-bold text-red-600 ml-3">(OUT OF STOCK)</span>`
     : "";
 
+  const imgHTML = item.img ? `
+    <div class="w-full md:w-56 shrink-0">
+      <img
+        src="${item.img}"
+        alt="${item.name}"
+        class="w-full h-48 md:h-44 object-cover rounded-2xl rust-border border-4 shadow-md"
+        loading="lazy"
+      />
+    </div>
+  ` : "";
+
+  const noteHTML = item.note
+    ? `<p class="text-sm text-gray-600 italic handwritten mt-2">${item.note}</p>`
+    : "";
+
+  const variantHTML = item.hasVariant ? `
+    <div class="mt-3 flex flex-wrap items-center gap-3">
+      <label class="handwritten text-lg text-gray-700 font-bold">Choose:</label>
+      <select
+        data-variant="${item.id}"
+        ${isOOS ? "disabled" : ""}
+        class="px-3 py-2 rounded-lg border-2 border-gray-300 focus:border-[#B83C1D] focus:outline-none bg-white handwritten text-lg ${isOOS ? "opacity-60 cursor-not-allowed" : ""}"
+      >
+        ${(item.variants || []).map(v => `<option value="${v.key}">${v.label}</option>`).join("")}
+      </select>
+    </div>
+  ` : "";
+
   return `
     <div class="menu-card bg-white/55 backdrop-blur-sm rounded-2xl p-6 rust-border border-4 shadow-lg paper-texture ${isOOS ? "opacity-80" : ""}">
       <div class="flex flex-col md:flex-row gap-6">
+        ${imgHTML}
+
         <div class="flex-1">
           <div class="flex justify-between items-start gap-4 mb-2">
             <div class="flex items-baseline flex-wrap">
@@ -60,42 +76,75 @@ window.cardHTML = function (item) {
   `;
 };
 
+// Updates qty in state + UI, then summary + floating checkout
+window.changeQty = function (id, delta) {
+  const item = window.CATALOG.find(x => x.id === id);
+  if (!item) return;
+  if (item.outOfStock) return;
 
+  const next = (window.orderState[id]?.qty || 0) + delta;
+  if (next < 0) return;
+
+  window.orderState[id].qty = next;
+
+  const qtyEl = document.getElementById(`qty-${id}`);
+  if (qtyEl) qtyEl.textContent = String(next);
+
+  window.updateSummary();
+};
+
+// Renders items by active category:
+// featured -> featured
+// menu -> plates + sides
+// desserts -> desserts
+// party -> party
 window.renderMenus = function () {
-  const foodWrap = document.getElementById("menu-food");
-  const dessertWrap = document.getElementById("menu-dessert");
+  const wrap = document.getElementById("menu-list");
+  if (!wrap) return;
 
-  foodWrap.innerHTML = window.CATALOG.filter(i => i.section === "food").map(window.cardHTML).join("");
-  dessertWrap.innerHTML = window.CATALOG.filter(i => i.section === "dessert").map(window.cardHTML).join("");
+  const active = window.__activeCategory || "featured";
 
-  // plus/minus
-  document.querySelectorAll("[data-plus]").forEach(btn => {
+  const items = window.CATALOG.filter(i => {
+    if (active === "menu") return i.category === "plates" || i.category === "sides";
+    return i.category === active;
+  });
+
+  if (items.length === 0) {
+    wrap.innerHTML = `
+      <div class="bg-white/60 rounded-2xl rust-border border-4 shadow-lg p-6 paper-texture text-center">
+        <p class="handwritten text-3xl deep-blue font-bold">Nothing here yet!</p>
+        <p class="text-gray-700 mt-2">If you expected items, double-check your catalog category labels.</p>
+      </div>
+    `;
+    return;
+  }
+
+  wrap.innerHTML = items.map(window.cardHTML).join("");
+
+  // Bind plus/minus buttons
+  wrap.querySelectorAll("[data-plus]").forEach(btn => {
     btn.addEventListener("click", () => window.changeQty(btn.dataset.plus, +1));
   });
-  document.querySelectorAll("[data-minus]").forEach(btn => {
+  wrap.querySelectorAll("[data-minus]").forEach(btn => {
     btn.addEventListener("click", () => window.changeQty(btn.dataset.minus, -1));
   });
 
-  // variants
-  document.querySelectorAll("select[data-variant]").forEach(sel => {
+  // Bind variant dropdowns + initialize selected value from state
+  wrap.querySelectorAll("select[data-variant]").forEach(sel => {
+    const id = sel.dataset.variant;
+
+    if (window.orderState?.[id]?.variant) {
+      sel.value = window.orderState[id].variant;
+    } else {
+      // fallback to first option
+      const first = sel.querySelector("option")?.value ?? null;
+      window.orderState[id].variant = first;
+      if (first) sel.value = first;
+    }
+
     sel.addEventListener("change", (e) => {
-      const id = e.target.dataset.variant;
       window.orderState[id].variant = e.target.value;
       window.updateSummary();
     });
   });
 };
-
-window.changeQty = function (id, delta) {
-  // Hard-block out-of-stock items
-  const item = window.CATALOG.find(x => x.id === id);
-  if (item?.outOfStock) return;
-
-  const next = window.orderState[id].qty + delta;
-  if (next < 0) return;
-
-  window.orderState[id].qty = next;
-  document.getElementById(`qty-${id}`).textContent = String(next);
-  window.updateSummary();
-};
-

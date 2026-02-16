@@ -1,39 +1,28 @@
 window.addEventListener("DOMContentLoaded", () => {
   lucide.createIcons();
 
-  // IG footer link
   const igLink = document.getElementById("igLink");
   igLink.href = `https://instagram.com/${window.APP_CONFIG.INSTAGRAM_HANDLE}`;
 
-  // tabs: switch + scroll
-  document.getElementById("tab-food").addEventListener("click", () => {
-    window.setTab("food");
-    window.scrollToMenuSelections();
-  });
-  document.getElementById("tab-dessert").addEventListener("click", () => {
-    window.setTab("dessert");
-    window.scrollToMenuSelections();
+  document.querySelectorAll(".ss-cat-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      window.setCategory(btn.dataset.cat);
+      window.scrollToMenuSelections();
+    });
   });
 
-  // render + init
-  window.renderMenus();
+  try { window.updateScheduleBanner?.(); } catch (_) {}
+  try { window.bindFloatingCheckoutButton?.(); } catch (_) {}
+  setInterval(() => {
+    try { window.updateScheduleBanner?.(); } catch (_) {}
+  }, 60 * 60 * 1000);
 
-  //MAKE THINGS OUT OF STOCK
-  window.setOutOfStock("lumpia", true);
-  window.setOutOfStock("porkbbq", true);
-  window.setOutOfStock("flan", true);
-  window.setOutOfStock("sago", true);
-
-  //TOGGLE UNAVAILABLE DAYS
-  window.setNoSameDayReadyToast(true);
+  // ✅ default category
+  window.setCategory("featured");
 
   window.updateSummary();
-  window.setTab("food");
-
-  // form wiring
   window.attachFormSubmit();
 
-  // reset button
   document.getElementById("resetBtn").addEventListener("click", () => {
     Object.keys(window.orderState).forEach(id => {
       window.orderState[id].qty = 0;
@@ -42,6 +31,9 @@ window.addEventListener("DOMContentLoaded", () => {
     });
 
     document.getElementById("orderForm").reset();
+
+    // Re-sync conditional required fields (contact method)
+    try { window.__orderUI?.syncContactRequirements?.(); } catch (_) {}
 
     const addressWrap = document.getElementById("addressWrap");
     const address = document.getElementById("address");
@@ -53,7 +45,6 @@ window.addEventListener("DOMContentLoaded", () => {
 
     document.getElementById("successMessage").classList.add("hidden");
 
-    // ensure any loading UI is cleared
     try { window.__orderUI?.hideLoading?.(); } catch (_) {}
     const loadingOverlay = document.getElementById("loadingOverlay");
     if (loadingOverlay) loadingOverlay.classList.add("hidden");

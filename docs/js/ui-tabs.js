@@ -1,18 +1,20 @@
-window.setTab = function (which) {
-  const tabFood = document.getElementById("tab-food");
-  const tabDessert = document.getElementById("tab-dessert");
-  const menuHeading = document.getElementById("menu-heading");
-  const menuFood = document.getElementById("menu-food");
-  const menuDessert = document.getElementById("menu-dessert");
+window.setCategory = function (cat) {
+  window.__activeCategory = cat;
 
-  const isFood = which === "food";
-  menuFood.classList.toggle("hidden", !isFood);
-  menuDessert.classList.toggle("hidden", isFood);
-  menuHeading.textContent = isFood ? "Food Menu" : "Dessert Menu";
+  const heading = document.getElementById("menu-heading");
+  const map = {
+    featured: "Featured",
+    menu: "Mains",
+    desserts: "Desserts",
+    party: "Party Trays",
+  };
+  if (heading) heading.textContent = map[cat] || "Menu";
 
-  tabFood.classList.toggle("bg-white/70", isFood);
-  tabFood.classList.toggle("bg-white/40", !isFood);
+  document.querySelectorAll(".ss-cat-btn").forEach(btn => {
+    const isActive = btn.dataset.cat === cat;
+    btn.classList.toggle("bg-white/70", isActive);
+    btn.classList.toggle("bg-white/40", !isActive);
+  });
 
-  tabDessert.classList.toggle("bg-white/70", !isFood);
-  tabDessert.classList.toggle("bg-white/40", isFood);
+  window.renderMenus();
 };

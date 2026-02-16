@@ -1,8 +1,16 @@
 window.formatDM = function (data) {
   let msg = `🍽️ NEW ORDER - SarapSeoul\n\n`;
   msg += `👤 Name: ${data.name}\n`;
-  msg += `📷 IG: @${data.instagram}\n`;
-  msg += `📞 Phone: ${data.phone}\n`;
+  msg += `✅ Preferred contact: ${data.contactMethod === "phone" ? "Phone" : "Instagram DM"}\n`;
+
+  if (data.contactMethod === "instagram") {
+    msg += `📷 IG: @${data.instagram}\n`;
+    if (data.phone) msg += `📞 Phone (optional): ${data.phone}\n`;
+  } else {
+    msg += `📞 Phone: ${data.phone}\n`;
+    if (data.instagram) msg += `📷 IG (optional): @${data.instagram}\n`;
+  }
+
   msg += `🚚 ${data.fulfillment.toUpperCase()}: ${data.address}\n\n`;
   msg += `🧾 ITEMS:\n`;
   data.items.forEach(it => {
@@ -29,6 +37,14 @@ window.attachFormSubmit = function () {
   const address = document.getElementById("address");
   const deliveryFeeNotice = document.getElementById("deliveryFeeNotice");
 
+  const contactMethod = document.getElementById("contactMethod");
+  const instagram = document.getElementById("instagram");
+  const phone = document.getElementById("phone");
+
+  const igStar = document.getElementById("igRequiredStar");
+  const phoneStar = document.getElementById("phoneRequiredStar");
+  const successContactEl = document.getElementById("successContactMethod");
+
   const submitBtn = document.getElementById("submitBtn") || form.querySelector('button[type="submit"]');
   const loadingOverlay = document.getElementById("loadingOverlay");
   const success = document.getElementById("successMessage");
@@ -47,6 +63,29 @@ window.attachFormSubmit = function () {
     form.setAttribute("aria-busy", "false");
   }
 
+  function syncContactRequirements() {
+    // Default to instagram if missing
+    const method = contactMethod?.value || "instagram";
+
+    const igRequired = method === "instagram";
+    const phoneRequired = method === "phone";
+
+    if (instagram) instagram.required = igRequired;
+    if (phone) phone.required = phoneRequired;
+
+    igStar?.classList.toggle("hidden", !igRequired);
+    phoneStar?.classList.toggle("hidden", !phoneRequired);
+
+    // Update success copy
+    if (successContactEl) {
+      successContactEl.textContent = phoneRequired ? "phone" : "Instagram";
+    }
+  }
+
+  // Initial sync + on change
+  try { syncContactRequirements(); } catch (_) {}
+  contactMethod?.addEventListener("change", syncContactRequirements);
+
   fulfillment.addEventListener("change", () => {
     const isDelivery = fulfillment.value === "delivery";
     addressWrap.classList.toggle("hidden", !isDelivery);
@@ -63,9 +102,28 @@ window.attachFormSubmit = function () {
 
     if (isSubmitting) return;
 
+    // Ensure required flags match current selection
+    syncContactRequirements();
+
     const hasItems = Object.values(window.orderState).some(x => x.qty > 0);
     if (!hasItems) {
       alert("Please select at least one item.");
+      return;
+    }
+
+    // Contact validation (since we preventDefault, we validate manually)
+    const method = contactMethod?.value || "instagram";
+    const igVal = (instagram?.value || "").trim().replace(/^@/, "");
+    const phoneVal = (phone?.value || "").trim();
+
+    if (method === "instagram" && !igVal) {
+      alert("Please enter your Instagram username (required for Instagram DM contact).");
+      instagram?.focus?.();
+      return;
+    }
+    if (method === "phone" && !phoneVal) {
+      alert("Please enter your phone number (required for phone contact).");
+      phone?.focus?.();
       return;
     }
 
@@ -81,8 +139,9 @@ window.attachFormSubmit = function () {
       // Build payload
       const payload = {
         name: document.getElementById("customerName").value.trim(),
-        instagram: document.getElementById("instagram").value.trim().replace(/^@/, ""),
-        phone: document.getElementById("phone").value.trim(),
+        contactMethod: method, // "instagram" | "phone"
+        instagram: igVal,
+        phone: phoneVal,
         fulfillment: fulfillment.value,
         address: fulfillment.value === "delivery" ? address.value.trim() : "Pickup",
         allergies: document.getElementById("allergies").value.trim(),
@@ -112,7 +171,7 @@ window.attachFormSubmit = function () {
         }
       });
 
-      // Copy DM text
+      // Copy DM text (still useful even if contacting by phone)
       const dm = window.formatDM(payload);
       try { await navigator.clipboard.writeText(dm); } catch (_) {}
 
@@ -126,9 +185,12 @@ window.attachFormSubmit = function () {
         lucide.createIcons();
       }
 
-      setTimeout(() => {
-        window.open(`https://ig.me/m/${window.APP_CONFIG.INSTAGRAM_HANDLE}`, "_blank");
-      }, 1200);
+      // Only open IG message if they chose Instagram contact
+      if (method === "instagram") {
+        setTimeout(() => {
+          window.open(`https://ig.me/m/${window.APP_CONFIG.INSTAGRAM_HANDLE}`, "_blank");
+        }, 1200);
+      }
     } catch (err) {
       console.error("Order submit error:", err);
       alert("Something went wrong while sending your order. Please try again.");
@@ -142,4 +204,5 @@ window.attachFormSubmit = function () {
   window.__orderUI = window.__orderUI || {};
   window.__orderUI.hideLoading = hideLoading;
   window.__orderUI.showLoading = showLoading;
+  window.__orderUI.syncContactRequirements = syncContactRequirements;
 };
