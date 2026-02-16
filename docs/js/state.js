@@ -28,7 +28,7 @@ window.setOutOfStock = function (id, isOutOfStock = true) {
 
   item.outOfStock = !!isOutOfStock;
 
-  // If turning OFF availability, zero out any selected qty immediately
+  // idk if we need this
   if (item.outOfStock && window.orderState?.[id]) {
     window.orderState[id].qty = 0;
     const qtyEl = document.getElementById(`qty-${id}`);
