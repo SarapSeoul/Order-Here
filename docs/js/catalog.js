@@ -156,7 +156,7 @@ window.CATALOG = [
     id: "party-bbq-15",
     category: "party",
     name: "Pork BBQ Skewer Tray (15 skewers)",
-    price: 45,
+    price: 40,
     desc: "Party tray (pre-order 3+ days ahead).",
     img: "./img/party-bbq.jpg",
   },
