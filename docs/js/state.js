@@ -96,7 +96,7 @@ window.updateScheduleBanner = function () {
     const thisSat = getNextSaturdayET(now); // upcoming Sat
     const daysLeft = getDaysLeftToOrderET(now);
 
-    line1.textContent = `Next orders go out on: ${fmtShortDateET(thisSat)} • ${hoursLabel}`;
+    line1.textContent = `Next orders go out on: ${fmtShortDateET(thisSat)}`;
 
     if (daysLeft <= 1) {
       line2.textContent = `⏳ Last day to order for this Saturday!`;
