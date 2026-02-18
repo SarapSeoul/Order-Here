@@ -8,7 +8,7 @@ window.sendToGoogleSheets = async function (payload) {
   try {
     await fetch(url, {
       method: "POST",
-    //  mode: "no-cors",
+      mode: "no-cors",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
