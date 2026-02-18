@@ -11,6 +11,12 @@ window.formatDM = function (data) {
     if (data.instagram) msg += `📷 IG (optional): @${data.instagram}\n`;
   }
 
+  // ✅ NEW
+  if (data.paymentMethod) {
+    const labelMap = { zelle: "Zelle", cashapp: "Cash App", venmo: "Venmo" };
+    msg += `💳 Payment: ${labelMap[data.paymentMethod] || data.paymentMethod}\n`;
+  }
+
   msg += `🚚 ${data.fulfillment.toUpperCase()}: ${data.address}\n\n`;
   msg += `🧾 ITEMS:\n`;
   data.items.forEach(it => {
@@ -41,6 +47,9 @@ window.attachFormSubmit = function () {
   const instagram = document.getElementById("instagram");
   const phone = document.getElementById("phone");
 
+  // ✅ NEW
+  const paymentMethodEl = document.getElementById("paymentMethod");
+
   const igStar = document.getElementById("igRequiredStar");
   const phoneStar = document.getElementById("phoneRequiredStar");
   const successContactEl = document.getElementById("successContactMethod");
@@ -64,7 +73,6 @@ window.attachFormSubmit = function () {
   }
 
   function syncContactRequirements() {
-    // Default to instagram if missing
     const method = contactMethod?.value || "instagram";
 
     const igRequired = method === "instagram";
@@ -76,7 +84,6 @@ window.attachFormSubmit = function () {
     igStar?.classList.toggle("hidden", !igRequired);
     phoneStar?.classList.toggle("hidden", !phoneRequired);
 
-    // Update success copy
     if (successContactEl) {
       successContactEl.textContent = phoneRequired ? "phone" : "Instagram";
     }
@@ -99,10 +106,8 @@ window.attachFormSubmit = function () {
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
-
     if (isSubmitting) return;
 
-    // Ensure required flags match current selection
     syncContactRequirements();
 
     const hasItems = Object.values(window.orderState).some(x => x.qty > 0);
@@ -111,7 +116,7 @@ window.attachFormSubmit = function () {
       return;
     }
 
-    // Contact validation (since we preventDefault, we validate manually)
+    // Contact validation
     const method = contactMethod?.value || "instagram";
     const igVal = (instagram?.value || "").trim().replace(/^@/, "");
     const phoneVal = (phone?.value || "").trim();
@@ -132,18 +137,29 @@ window.attachFormSubmit = function () {
       return;
     }
 
+    // ✅ NEW: payment method validation
+    const paymentMethod = (paymentMethodEl?.value || "").trim();
+    if (!paymentMethod) {
+      alert("Please select a payment method (Zelle, Cash App, or Venmo).");
+      paymentMethodEl?.focus?.();
+      return;
+    }
+
     isSubmitting = true;
     showLoading();
 
     try {
-      // Build payload
       const payload = {
         name: document.getElementById("customerName").value.trim(),
-        contactMethod: method, // "instagram" | "phone"
+        contactMethod: method,
         instagram: igVal,
         phone: phoneVal,
         fulfillment: fulfillment.value,
         address: fulfillment.value === "delivery" ? address.value.trim() : "Pickup",
+
+        // ✅ NEW
+        paymentMethod: paymentMethod, // "zelle" | "cashapp" | "venmo"
+
         allergies: document.getElementById("allergies").value.trim(),
         items: [],
         subtotal: 0,
@@ -171,21 +187,17 @@ window.attachFormSubmit = function () {
         }
       });
 
-      // Copy DM text (still useful even if contacting by phone)
       const dm = window.formatDM(payload);
       try { await navigator.clipboard.writeText(dm); } catch (_) {}
 
-      // Send to Sheets
       await window.sendToGoogleSheets(payload);
 
-      // Swap to success UI
       hideLoading();
       if (success) {
         success.classList.remove("hidden");
         lucide.createIcons();
       }
 
-      // Only open IG message if they chose Instagram contact
       if (method === "instagram") {
         setTimeout(() => {
           window.open(`https://ig.me/m/${window.APP_CONFIG.INSTAGRAM_HANDLE}`, "_blank");
@@ -200,7 +212,6 @@ window.attachFormSubmit = function () {
     }
   });
 
-  // expose helpers so reset button can cleanly restore UI
   window.__orderUI = window.__orderUI || {};
   window.__orderUI.hideLoading = hideLoading;
   window.__orderUI.showLoading = showLoading;
