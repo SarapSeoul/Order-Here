@@ -91,7 +91,21 @@ window.changeQty = function (id, delta) {
   if (qtyEl) qtyEl.textContent = String(next);
 
   window.updateSummary();
+
+  // GA4 event (only when adding, not removing)
+  if (delta > 0) {
+    try {
+      if (typeof gtag === "function") {
+        gtag("event", "add_item_click", {
+          item_id: id,
+          item_name: item.name || "",
+          item_category: item.category || ""
+        });
+      }
+    } catch (_) {}
+  }
 };
+
 
 // Renders items by active category:
 // featured -> featured
