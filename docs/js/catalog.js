@@ -77,6 +77,20 @@ window.CATALOG = [
 
   // FEATURED (ShareBoxes)
   {
+  id: "gochu-bistek",
+  category: "featured",
+  name: "Gochu-Bistek",
+  price: 6, // base price = 8oz
+  desc: "A bold twist on classic Bistek Tagalog. Tender beef simmered in soy-calamansi sauce with caramelized onions and gochujang for a Filipino-Korean kick.",
+  hasVariant: true,
+  variants: [
+    { key: "small", label: "Small • 8oz ($6)", multiplier: 1 },
+    { key: "medium", label: "Medium • 28oz ($32)", multiplier: 32/6 },
+    { key: "large", label: "Large • 120oz ($140)", multiplier: 140/6 },
+  ],
+  img: "./img/bistek.png",
+},
+  {
     id: "bundle-kapamilya",
     category: "featured",
     name: "Kapamilya ShareBox",
