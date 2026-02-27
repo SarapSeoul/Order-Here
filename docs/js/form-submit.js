@@ -177,20 +177,30 @@ window.attachFormSubmit = function () {
             name += ` (${v ? v.label : st.variant})`;
           }
 
-          payload.items.push({
-            id: item.id,
-            name,
-            qty: st.qty,
-            unitPrice: item.price,
-            total: itemTotal,
-          });
-        }
+payload.items.push({
+  id: item.id,
+  variant: item.hasVariant ? (st.variant || null) : null,  // ✅ add this
+  name,
+  qty: st.qty,
+  unitPrice: item.price, // can remain (backend ignores)
+  total: itemTotal,      // can remain (backend ignores)
+});
+ }
       });
+       
 
       const dm = window.formatDM(payload);
       try { await navigator.clipboard.writeText(dm); } catch (_) {}
 
-      await window.sendToGoogleSheets(payload);
+      const result = await window.sendToGoogleSheets(payload);
+
+if (!result.ok) {
+  alert("Order failed: " + result.error);
+  return;
+}
+
+console.log("Order Created:", result.data);
+alert(`Order submitted! Order ID: ${result.data.orderId}`);
 
       hideLoading();
       if (success) {

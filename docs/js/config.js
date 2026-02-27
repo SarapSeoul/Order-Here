@@ -1,5 +1,22 @@
 // Global config (easy to debug/change)
-window.APP_CONFIG = {
-  INSTAGRAM_HANDLE: "the_sarapseoul",
-  SCRIPT_URL: "https://script.google.com/macros/s/AKfycbzCZrtAZS8V5VmpGSGr1XdLfUXGwKYOS0uhJE_sUNjXzcN5BvA8r584XuC2n_y0JAq7IQ/exec",
-};
+(function () {
+  const isLocalhost =
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1";
+
+  window.APP_CONFIG = {
+    INSTAGRAM_HANDLE: "the_sarapseoul",
+
+    // Local Spring Boot backend
+    LOCAL_API_URL: "http://localhost:8080/api/orders",
+
+    // Production backend (you will fill this in later when deployed)
+    PROD_API_URL: "https://your-backend-domain.com/api/orders",
+
+    get ORDER_API_URL() {
+      return isLocalhost
+        ? this.LOCAL_API_URL
+        : this.PROD_API_URL;
+    }
+  };
+})();
