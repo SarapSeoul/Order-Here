@@ -1,5 +1,6 @@
 package com.sarapseoul.order_api.api;
 
+import com.sarapseoul.order_api.awsAPI.OrderQueuePublisher;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import org.springframework.http.HttpStatus;
@@ -12,7 +13,13 @@ import java.util.*;
 
 @RestController
 @RequestMapping("/api/orders")
+
 public class OrderController {
+        private final OrderQueuePublisher publisher;
+
+        public OrderController(OrderQueuePublisher publisher) {
+        this.publisher = publisher;
+        }
 
     // ----------------------------
     // Step 3: Backend "source of truth" catalog
@@ -73,6 +80,8 @@ public class OrderController {
         return Collections.unmodifiableMap(m);
     }
 
+    
+
     private static BigDecimal bd(String v) { return new BigDecimal(v); }
 
     // ----------------------------
@@ -123,14 +132,18 @@ public class OrderController {
 
         computedSubtotal = computedSubtotal.setScale(2, RoundingMode.HALF_UP);
 
-        // NOTE: We are intentionally NOT trusting req.subtotal / req.items[].total / req.items[].unitPrice
+        //used to be inside of return value, just a var now
+        String orderId = UUID.randomUUID().toString();
+
+        // publish to SQS
+        publisher.publishOrderCreated(orderId);
 
         return new OrderResponse(
-                UUID.randomUUID().toString(),
-                "RECEIVED",
-                computedSubtotal,
-                computedItems
-        );
+        orderId,
+        "RECEIVED",
+        computedSubtotal,
+        computedItems
+);
     }
 
     // ----------------------------
