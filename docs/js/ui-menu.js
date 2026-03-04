@@ -12,7 +12,7 @@ window.cardHTML = function (item) {
       <img
         src="${item.img}"
         alt="${item.name}"
-        class="w-full h-36 md:h-24 object-cover rounded-2xl rust-border border-4 shadow-md"
+        class="w-full h-48 md:h-24 object-cover rounded-2xl rust-border border-4 shadow-md"
         loading="lazy"
       />
     </div>
@@ -59,7 +59,7 @@ window.cardHTML = function (item) {
             <div class="flex justify-between items-start gap-3">
               <div class="min-w-0">
                 <div class="flex items-baseline flex-wrap">
-                  <h3 class="handwritten text-2xl md:text-3xl deep-blue font-bold truncate">${item.name}</h3>
+                  <h3 class="handwritten text-2xl md:text-3xl deep-blue font-bold">${item.name}</h3>
                   ${oosLabelHTML}
                 </div>
                 <p class="text-gray-500 text-sm handwritten mt-1">
