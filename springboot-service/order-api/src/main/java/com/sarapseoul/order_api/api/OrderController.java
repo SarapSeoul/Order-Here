@@ -1,6 +1,10 @@
 package com.sarapseoul.order_api.api;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sarapseoul.order_api.awsAPI.OrderQueuePublisher;
+import com.sarapseoul.order_api.orders.OrderRecord; //had to move this into java subfile
+import com.sarapseoul.order_api.orders.OrderRepository; // had to move this into java subfile
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import org.springframework.http.HttpStatus;
@@ -9,27 +13,33 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Instant;
 import java.util.*;
 
 @RestController
 @RequestMapping("/api/orders")
-
 public class OrderController {
-        private final OrderQueuePublisher publisher;
 
-        public OrderController(OrderQueuePublisher publisher) {
+    private final OrderQueuePublisher publisher;
+    private final OrderRepository orderRepository;
+    private final ObjectMapper objectMapper;
+
+    public OrderController(OrderQueuePublisher publisher,
+                           OrderRepository orderRepository,
+                           ObjectMapper objectMapper) {
         this.publisher = publisher;
-        }
+        this.orderRepository = orderRepository;
+        this.objectMapper = objectMapper;
+    }
 
     // ----------------------------
-    // Step 3: Backend "source of truth" catalog
+    // Backend "source of truth" catalog (kept here for now)
     // ----------------------------
     private static final Map<String, CatalogItem> CATALOG = buildCatalog();
 
     private static Map<String, CatalogItem> buildCatalog() {
         Map<String, CatalogItem> m = new HashMap<>();
 
-        // Helper: base price, optional variants map (key -> multiplier)
         m.put("bbqplate", new CatalogItem("K-Style Filipino Pork BBQ Plate",
                 bd("10.00"),
                 Map.of("pork", bd("1.0"), "chicken", bd("1.0"))
@@ -44,12 +54,9 @@ public class OrderController {
 
         m.put("flan", new CatalogItem("Caramel Silk Leche Flan",
                 bd("5.00"),
-                // slice = 1x, whole = 4x (matches your frontend)
                 Map.of("slice", bd("1.0"), "whole", bd("4.0"))
         ));
 
-        // NOTE: Your frontend base price here is 7
-        // variants: medium=32, large=140 (by multiplier relative to 7)
         m.put("gochu-bistek", new CatalogItem("Gochu-Bistek",
                 bd("7.00"),
                 Map.of(
@@ -80,68 +87,65 @@ public class OrderController {
         return Collections.unmodifiableMap(m);
     }
 
-    
-
     private static BigDecimal bd(String v) { return new BigDecimal(v); }
 
     // ----------------------------
-    // API: POST /api/orders
+    // POST /api/orders
+    // Fast path: validate -> persist RECEIVED -> publish -> return
     // ----------------------------
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public OrderResponse createOrder(@Valid @RequestBody OrderRequest req) {
 
-        // Compute totals server-side
-        List<ComputedLineItem> computedItems = new ArrayList<>();
-        BigDecimal computedSubtotal = bd("0.00");
-
+        // Optional: lightweight validation of item IDs so we fail fast before persisting
         for (OrderItemRequest it : req.items()) {
-            CatalogItem catalogItem = CATALOG.get(it.id());
-            if (catalogItem == null) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                        "Unknown item id: " + it.id());
+            if (!CATALOG.containsKey(it.id())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unknown item id: " + it.id());
             }
-
-            BigDecimal multiplier = bd("1.0");
             if (it.variant() != null && !it.variant().isBlank()) {
-                BigDecimal m = catalogItem.variantMultipliers().get(it.variant());
-                if (m == null) {
-                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                            "Invalid variant '" + it.variant() + "' for item: " + it.id());
+                CatalogItem ci = CATALOG.get(it.id());
+                if (!ci.variantMultipliers().containsKey(it.variant())) {
+                    throw new ResponseStatusException(
+                            HttpStatus.BAD_REQUEST,
+                            "Invalid variant '" + it.variant() + "' for item: " + it.id()
+                    );
                 }
-                multiplier = m;
             }
-
-            BigDecimal unitPrice = catalogItem.basePrice().multiply(multiplier);
-            BigDecimal lineTotal = unitPrice.multiply(BigDecimal.valueOf(it.qty()));
-
-            unitPrice = unitPrice.setScale(2, RoundingMode.HALF_UP);
-            lineTotal = lineTotal.setScale(2, RoundingMode.HALF_UP);
-
-            computedSubtotal = computedSubtotal.add(lineTotal);
-
-            computedItems.add(new ComputedLineItem(
-                    it.id(),
-                    catalogItem.name(),
-                    it.variant(),
-                    it.qty(),
-                    unitPrice,
-                    lineTotal
-            ));
         }
 
-        computedSubtotal = computedSubtotal.setScale(2, RoundingMode.HALF_UP);
-
-        //used to be inside of return value, just a var now
         String orderId = UUID.randomUUID().toString();
 
-        // publish to SQS
+        // Persist OrderReceived to DynamoDB FIRST
+        OrderRecord rec = new OrderRecord();
+        rec.setOrderId(orderId);
+        rec.setStatus("RECEIVED");
+        rec.setCreatedAt(Instant.now().toString());
+
+        try {
+            rec.setRequestJson(objectMapper.writeValueAsString(req));
+        } catch (JsonProcessingException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to serialize request");
+        }
+
+        orderRepository.put(rec);
+
+        // Then publish to SQS
         publisher.publishOrderCreated(orderId);
 
-        return new OrderResponse( //only returning confirmation message, all work is done outside now
-        orderId,
-        "RECEIVED"
-);
+        return new OrderResponse(orderId, "RECEIVED");
+    }
+
+    // ----------------------------
+    // GET /api/orders/{orderId}
+    // Lets you verify async status changes easily
+    // ----------------------------
+    @GetMapping("/{orderId}")
+    public OrderRecord getOrder(@PathVariable String orderId) {
+        OrderRecord rec = orderRepository.get(orderId);
+        if (rec == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found: " + orderId);
+        }
+        return rec;
     }
 
     // ----------------------------
@@ -157,31 +161,19 @@ public class OrderController {
             @NotBlank String paymentMethod,
             String allergies,
             @NotEmpty @Valid List<OrderItemRequest> items,
-            // client subtotal can be present, but we ignore it
             BigDecimal subtotal
     ) {}
 
     public record OrderItemRequest(
             @NotBlank String id,
             @Positive int qty,
-            // New recommended field from frontend
             String variant,
-            // these may come from client but are ignored
             BigDecimal unitPrice,
             BigDecimal total,
             String name
     ) {}
 
-   public record OrderResponse(String orderId, String status) {} //no longer computing here
-
-    public record ComputedLineItem(
-            String id,
-            String name,
-            String variant,
-            int qty,
-            BigDecimal computedUnitPrice,
-            BigDecimal computedLineTotal
-    ) {}
+    public record OrderResponse(String orderId, String status) {}
 
     private record CatalogItem(
             String name,
