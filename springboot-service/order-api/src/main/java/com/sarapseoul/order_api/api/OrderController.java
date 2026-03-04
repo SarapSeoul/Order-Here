@@ -138,11 +138,9 @@ public class OrderController {
         // publish to SQS
         publisher.publishOrderCreated(orderId);
 
-        return new OrderResponse(
+        return new OrderResponse( //only returning confirmation message, all work is done outside now
         orderId,
-        "RECEIVED",
-        computedSubtotal,
-        computedItems
+        "RECEIVED"
 );
     }
 
@@ -174,12 +172,7 @@ public class OrderController {
             String name
     ) {}
 
-    public record OrderResponse(
-            String orderId,
-            String status,
-            BigDecimal computedSubtotal,
-            List<ComputedLineItem> computedItems
-    ) {}
+   public record OrderResponse(String orderId, String status) {} //no longer computing here
 
     public record ComputedLineItem(
             String id,
