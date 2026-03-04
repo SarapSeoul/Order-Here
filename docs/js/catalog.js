@@ -76,6 +76,25 @@ window.CATALOG = [
   },
 
   // FEATURED (ShareBoxes)
+
+  {
+  id: "kanto-korean-fried-chicken",
+  name: "Kanto Korean Fried Chicken",
+  price: 9,
+  category: "featured",
+
+  desc: "Golden, crispy fried chicken inspired by Filipino kanto street vendors and Korean fried chicken shops. Double-fried for a crunchy bite, juicy inside, and packed with that irresistible street food flavor.",
+
+  img: "img/kwingsss.jpg",
+
+  hasVariant: true,
+  variants: [
+    { key: "5pc", label: "5 Pieces", multiplier: 1 },
+    { key: "10pc", label: "10 Pieces", multiplier: 16/9 },
+    { key: "20pc", label: "20 Pieces", multiplier: 31/9 },
+    { key: "30pc", label: "30 Pieces", multiplier: 45/9 }
+  ]
+},
   {
   id: "gochu-bistek",
   category: "featured",
@@ -103,19 +122,7 @@ window.CATALOG = [
     ],
     img: "./img/sharebox-1.png",
   },
-  {
-    id: "bundle-kilig",
-    category: "featured",
-    name: "Kilig ShareBox",
-    price: 18,
-    desc: "1 BBQ Plate (pork or chicken) + 6 Crab Rangoons + 2 Turon",
-    hasVariant: true,
-    variants: [
-      { key: "pork", label: "BBQ Plate: Pork", multiplier: 1 },
-      { key: "chicken", label: "BBQ Plate: Chicken", multiplier: 1 },
-    ],
-    img: "./img/sharebox-2.png",
-  },
+
 
   // PARTY TRAYS
   {

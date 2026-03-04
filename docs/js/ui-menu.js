@@ -1,18 +1,18 @@
-// Builds one menu card
+// Builds one menu card (compact + expandable details)
 window.cardHTML = function (item) {
   const priceLabel = `$${item.price}`;
   const isOOS = item.outOfStock === true;
 
   const oosLabelHTML = isOOS
-    ? `<span class="handwritten text-2xl font-bold text-red-600 ml-3">(OUT OF STOCK)</span>`
+    ? `<span class="handwritten text-xl font-bold text-red-600 ml-3">(OUT OF STOCK)</span>`
     : "";
 
   const imgHTML = item.img ? `
-    <div class="w-full md:w-56 shrink-0">
+    <div class="w-full md:w-32 shrink-0">
       <img
         src="${item.img}"
         alt="${item.name}"
-        class="w-full h-48 md:h-44 object-cover rounded-2xl rust-border border-4 shadow-md"
+        class="w-full h-36 md:h-24 object-cover rounded-2xl rust-border border-4 shadow-md"
         loading="lazy"
       />
     </div>
@@ -21,6 +21,13 @@ window.cardHTML = function (item) {
   const noteHTML = item.note
     ? `<p class="text-sm text-gray-600 italic handwritten mt-2">${item.note}</p>`
     : "";
+
+  const detailsHTML = (item.desc || item.note) ? `
+    <div id="details-${item.id}" class="hidden mt-3 pt-3 border-t border-gray-200">
+      ${item.desc ? `<p class="text-gray-700 text-base leading-relaxed handwritten ${isOOS ? "opacity-70" : ""}">${item.desc}</p>` : ""}
+      ${noteHTML}
+    </div>
+  ` : "";
 
   const variantHTML = item.hasVariant ? `
     <div class="mt-3 flex flex-wrap items-center gap-3">
@@ -36,40 +43,56 @@ window.cardHTML = function (item) {
   ` : "";
 
   return `
-    <div class="menu-card bg-white/55 backdrop-blur-sm rounded-2xl p-6 rust-border border-4 shadow-lg paper-texture ${isOOS ? "opacity-80" : ""}">
-      <div class="flex flex-col md:flex-row gap-6">
-        ${imgHTML}
+    <div
+      class="menu-card bg-white/55 backdrop-blur-sm rounded-2xl rust-border border-4 shadow-lg paper-texture ${isOOS ? "opacity-80" : ""}"
+      data-card="${item.id}"
+      role="button"
+      tabindex="0"
+      aria-expanded="false"
+      aria-controls="details-${item.id}"
+    >
+      <div class="p-3 md:p-4">
+        <div class="flex flex-col md:flex-row gap-4">
+          ${imgHTML}
 
-        <div class="flex-1">
-          <div class="flex justify-between items-start gap-4 mb-2">
-            <div class="flex items-baseline flex-wrap">
-              <h3 class="handwritten text-3xl md:text-4xl deep-blue font-bold">${item.name}</h3>
-              ${oosLabelHTML}
+          <div class="flex-1 min-w-0">
+            <div class="flex justify-between items-start gap-3">
+              <div class="min-w-0">
+                <div class="flex items-baseline flex-wrap">
+                  <h3 class="handwritten text-2xl md:text-3xl deep-blue font-bold truncate">${item.name}</h3>
+                  ${oosLabelHTML}
+                </div>
+                <p class="text-gray-500 text-sm handwritten mt-1">
+                  <span class="opacity-80">Click for more details</span>
+                </p>
+              </div>
+
+              <span class="handwritten text-2xl text-amber-700 font-bold whitespace-nowrap">${priceLabel}</span>
             </div>
-            <span class="handwritten text-3xl text-amber-700 font-bold">${priceLabel}</span>
+
+            ${variantHTML}
+
+            <div class="mt-3 flex items-center gap-4">
+              <button
+                class="qty-btn w-8 h-8 rounded-full rust-bg text-white flex items-center justify-center text-lg font-bold ${isOOS ? "opacity-50 cursor-not-allowed" : ""}"
+                data-minus="${item.id}"
+                ${isOOS ? "disabled" : ""}
+                aria-label="Decrease quantity"
+              >-</button>
+
+              <span id="qty-${item.id}" class="text-lg font-bold text-gray-800 w-10 text-center">0</span>
+
+              <button
+                class="qty-btn w-8 h-8 rounded-full rust-bg text-white flex items-center justify-center text-lg font-bold ${isOOS ? "opacity-50 cursor-not-allowed" : ""}"
+                data-plus="${item.id}"
+                ${isOOS ? "disabled" : ""}
+                aria-label="Increase quantity"
+              >+</button>
+            </div>
+
+            ${isOOS ? `<p class="handwritten text-base text-red-600 font-bold mt-3">This item is currently unavailable.</p>` : ""}
+            ${detailsHTML}
           </div>
-
-          <p class="text-gray-700 text-lg leading-relaxed handwritten ${isOOS ? "opacity-70" : ""}">${item.desc}</p>
-          ${noteHTML}
-          ${variantHTML}
-
-          <div class="mt-4 flex items-center gap-4">
-            <button
-              class="qty-btn w-10 h-10 rounded-full rust-bg text-white flex items-center justify-center text-xl font-bold ${isOOS ? "opacity-50 cursor-not-allowed" : ""}"
-              data-minus="${item.id}"
-              ${isOOS ? "disabled" : ""}
-            >-</button>
-
-            <span id="qty-${item.id}" class="text-2xl font-bold text-gray-800 w-10 text-center">0</span>
-
-            <button
-              class="qty-btn w-10 h-10 rounded-full rust-bg text-white flex items-center justify-center text-xl font-bold ${isOOS ? "opacity-50 cursor-not-allowed" : ""}"
-              data-plus="${item.id}"
-              ${isOOS ? "disabled" : ""}
-            >+</button>
-          </div>
-
-          ${isOOS ? `<p class="handwritten text-lg text-red-600 font-bold mt-3">This item is currently unavailable.</p>` : ""}
         </div>
       </div>
     </div>
@@ -106,12 +129,23 @@ window.changeQty = function (id, delta) {
   }
 };
 
+// Toggle card details
+window.toggleCardDetails = function (id) {
+  const details = document.getElementById(`details-${id}`);
+  const card = document.querySelector(`[data-card="${id}"]`);
+  if (!details || !card) return;
 
-// Renders items by active category:
-// featured -> featured
-// menu -> plates + sides
-// desserts -> desserts
-// party -> party
+  const isOpen = !details.classList.contains("hidden");
+  if (isOpen) {
+    details.classList.add("hidden");
+    card.setAttribute("aria-expanded", "false");
+  } else {
+    details.classList.remove("hidden");
+    card.setAttribute("aria-expanded", "true");
+  }
+};
+
+// Renders items by active category
 window.renderMenus = function () {
   const wrap = document.getElementById("menu-list");
   if (!wrap) return;
@@ -137,20 +171,28 @@ window.renderMenus = function () {
 
   // Bind plus/minus buttons
   wrap.querySelectorAll("[data-plus]").forEach(btn => {
-    btn.addEventListener("click", () => window.changeQty(btn.dataset.plus, +1));
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      window.changeQty(btn.dataset.plus, +1);
+    });
   });
   wrap.querySelectorAll("[data-minus]").forEach(btn => {
-    btn.addEventListener("click", () => window.changeQty(btn.dataset.minus, -1));
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      window.changeQty(btn.dataset.minus, -1);
+    });
   });
 
   // Bind variant dropdowns + initialize selected value from state
   wrap.querySelectorAll("select[data-variant]").forEach(sel => {
+    sel.addEventListener("click", (e) => e.stopPropagation());
+    sel.addEventListener("mousedown", (e) => e.stopPropagation());
+
     const id = sel.dataset.variant;
 
     if (window.orderState?.[id]?.variant) {
       sel.value = window.orderState[id].variant;
     } else {
-      // fallback to first option
       const first = sel.querySelector("option")?.value ?? null;
       window.orderState[id].variant = first;
       if (first) sel.value = first;
@@ -159,6 +201,19 @@ window.renderMenus = function () {
     sel.addEventListener("change", (e) => {
       window.orderState[id].variant = e.target.value;
       window.updateSummary();
+    });
+  });
+
+  // Bind card click to toggle details
+  wrap.querySelectorAll("[data-card]").forEach(card => {
+    const id = card.dataset.card;
+
+    card.addEventListener("click", () => window.toggleCardDetails(id));
+    card.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        window.toggleCardDetails(id);
+      }
     });
   });
 };

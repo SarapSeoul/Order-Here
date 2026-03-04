@@ -11,17 +11,25 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  // Back to menu button (checkout view)
+  document.getElementById("backToMenuBtn")?.addEventListener("click", () => {
+    window.showMenu();
+  });
+
   try { window.updateScheduleBanner?.(); } catch (_) {}
   try { window.bindFloatingCheckoutButton?.(); } catch (_) {}
   setInterval(() => {
     try { window.updateScheduleBanner?.(); } catch (_) {}
   }, 60 * 60 * 1000);
 
-  // ✅ default category
+  // default category
   window.setCategory("featured");
 
   window.updateSummary();
   window.attachFormSubmit();
+
+  // Start on menu view
+  try { window.showMenu?.(); } catch (_) {}
 
   document.getElementById("resetBtn").addEventListener("click", () => {
     Object.keys(window.orderState).forEach(id => {
@@ -32,7 +40,6 @@ window.addEventListener("DOMContentLoaded", () => {
 
     document.getElementById("orderForm").reset();
 
-    // Re-sync conditional required fields (contact method)
     try { window.__orderUI?.syncContactRequirements?.(); } catch (_) {}
 
     const addressWrap = document.getElementById("addressWrap");
@@ -53,6 +60,8 @@ window.addEventListener("DOMContentLoaded", () => {
     document.getElementById("orderForm")?.setAttribute("aria-busy", "false");
 
     window.updateSummary();
-    window.location.hash = "#order-section";
+
+    // ✅ Go back to menu view after reset
+    window.showMenu();
   });
 });
